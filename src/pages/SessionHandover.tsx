@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   A,
@@ -44,18 +44,20 @@ export default function SessionHandover() {
   const [note, setNote] = useState("");
   const [stage, setStage] = useState<"edit" | "confirm" | "payment">("edit");
 
-  // Idempotency UUID persisted in sessionStorage across remounts until successful submission
+  // Idempotency UUID kept in sessionStorage. Reused only when the payload is identical
+  // (safe retry after a network drop). A changed payload gets a new UUID, so no 409 mismatch.
   const REF_KEY = `fs_handover_ref_${tcId}`;
-  const getHandoverRef = (): string => {
-    let r = sessionStorage.getItem(REF_KEY);
-    if (!r) {
-      r = crypto.randomUUID();
-      sessionStorage.setItem(REF_KEY, r);
-    }
-    return r;
+  const getHandoverRef = (sig: string): string => {
+    try {
+      const s = JSON.parse(sessionStorage.getItem(REF_KEY) ?? "null");
+      if (s?.ref && s.sig === sig) return s.ref as string;
+    } catch { /* ignore */ }
+    const ref = crypto.randomUUID();
+    try { sessionStorage.setItem(REF_KEY, JSON.stringify({ ref, sig })); } catch { /* storage blocked */ }
+    return ref;
   };
   const clearHandoverRef = () => {
-    sessionStorage.removeItem(REF_KEY);
+    try { sessionStorage.removeItem(REF_KEY); } catch { /* ignore */ }
   };
 
   const leave = useLeave(stage === "edit" && (Object.keys(v).length > 0 || note !== ""));
@@ -94,17 +96,9 @@ export default function SessionHandover() {
 
   const val = (fid: number) => (v[fid] !== undefined ? v[fid] : pre(fid) ? String(pre(fid)) : "");
 
-  const lines = useMemo(
-    () => fish.map((f) => ({ fish_type_id: f.id, bags: intOf(val(f.id)) })),
-    [fish, v]
-  );
-
-  const total = useMemo(() => lines.reduce((a, l) => a + l.bags, 0), [lines]);
-
-  const over = useMemo(
-    () => fish.filter((f) => intOf(val(f.id)) > 0 && leftOf(f.id) - intOf(val(f.id)) < 0),
-    [fish, v, stock.data]
-  );
+  const lines = fish.map((f) => ({ fish_type_id: f.id, bags: intOf(val(f.id)) }));
+  const total = lines.reduce((a, l) => a + l.bags, 0);
+  const over = fish.filter((f) => intOf(val(f.id)) > 0 && leftOf(f.id) - intOf(val(f.id)) < 0);
 
   const gotAny = handed(tc.customer_id) > 0;
 
@@ -121,7 +115,7 @@ export default function SessionHandover() {
   async function submit() {
     const body: A = {
       trip_customer_id: tc.id,
-      submit_reference: getHandoverRef(),
+      submit_reference: getHandoverRef(JSON.stringify({ lines, note: note.trim() })),
       lines,
     };
     if (note.trim()) body.note = note.trim();

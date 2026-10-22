@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { fmtDate } from "../api";
 import {
@@ -85,14 +85,12 @@ export default function SessionGrid() {
       .filter((r: A) => r.customer_id === cid)
       .reduce((a: number, r: A) => a + r.bags, 0);
 
-  const cards = useMemo(() => {
-    return (tcs.data as A[]).map((x) => ({
-      x,
-      name: nameOf(x.customer_id),
-      planned: planned(x.customer_id),
-      handed: handed(x.customer_id),
-    }));
-  }, [tcs.data, cust.data, rt.data, tot.data]);
+  const cards = (tcs.data as A[]).map((x) => ({
+    x,
+    name: nameOf(x.customer_id),
+    planned: planned(x.customer_id),
+    handed: handed(x.customer_id),
+  }));
 
   const status = (c: A) => (done.has(c.x.id) ? "done" : c.handed > 0 ? "recorded" : "awaiting");
   const label: Record<string, string> = {
@@ -107,13 +105,11 @@ export default function SessionGrid() {
   const allDone = required.length > 0 && pending.length === 0;
   const doneCount = required.length - pending.length;
 
-  const shown = useMemo(() => {
-    return cards.filter(
-      (c) =>
-        (filter === "all" || status(c) === filter) &&
-        c.name.toLowerCase().includes(q.toLowerCase())
-    );
-  }, [cards, filter, q, done]);
+  const shown = cards.filter(
+    (c) =>
+      (filter === "all" || status(c) === filter) &&
+      c.name.toLowerCase().includes(q.toLowerCase())
+  );
 
   const stockStatus = (l: A): ["ok" | "warn" | "bad" | "mut", string] =>
     !l.on_slip
