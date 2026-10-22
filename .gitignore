@@ -1,0 +1,5 @@
+.env
+node_modules/
+public/
+FRONTEND_ALL.txt
+FRONTEND_GUIDE.md
