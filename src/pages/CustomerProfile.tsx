@@ -32,7 +32,13 @@ export default function CustomerProfile() {
   const { success } = useToast();
   const c = useGet(["customer", cid], `/customers/${cid}`);
   const trips = useGet(["trips"], "/trips/");
-  const list: A[] = [...(trips.data ?? [])].sort(byIdDesc);
+  const PAGE = 20;
+  const [limit, setLimit] = useState(PAGE);
+  const allTrips: A[] = useMemo(
+    () => [...(trips.data ?? [])].sort(byIdDesc),
+    [trips.data]
+  );
+  const list = allTrips.slice(0, limit);
 
   const reqs = useQueries({
     queries: list.map((t) => ({
@@ -231,11 +237,15 @@ export default function CustomerProfile() {
 
         <div className="stats">
           <div className="stat">
-            <div className="t">Trips joined</div>
+            <div className="t">
+              Trips joined{allTrips.length > limit ? ` (of last ${limit})` : ""}
+            </div>
             <div className="v num">{rows.length}</div>
           </div>
           <div className="stat">
-            <div className="t">Total bags received</div>
+            <div className="t">
+              Bags received{allTrips.length > limit ? ` (last ${limit})` : ""}
+            </div>
             <div className="v num">{totalBags}</div>
           </div>
         </div>
@@ -270,7 +280,13 @@ export default function CustomerProfile() {
               </span>
             </Link>
           ))}
-          {rows.length === 0 && !loading && <div className="li sub">Not on any trip yet.</div>}
+          {rows.length === 0 && !loading && (
+            <div className="li sub">
+              {allTrips.length > limit
+                ? `Not on the last ${limit} trips — Load older trips above to search earlier history.`
+                : "Not on any trip yet."}
+            </div>
+          )}
         </div>
 
         <div className="h2">Handover history</div>
@@ -302,6 +318,13 @@ export default function CustomerProfile() {
           <Icon n="rupee" size={16} /> Amount paid and balance will appear here when payment
           tracking is added.
         </div>
+
+        {allTrips.length > limit && (
+          <Btn block variant="outline" className="mt" onClick={() => setLimit(limit + PAGE)}>
+            Load {Math.min(PAGE, allTrips.length - limit)} older trips (
+            {allTrips.length - limit} remaining)
+          </Btn>
+        )}
       </div>
 
       {edit && (

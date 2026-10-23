@@ -176,20 +176,6 @@ export default function Order() {
     }
   };
 
-  const handleBlurQuantity = (fishTypeId: number) => {
-    const currentVal = intOf(quantities[fishTypeId]);
-    const origVal = originalQuantities[fishTypeId];
-    if (currentVal !== origVal && draft?.id) {
-      act(() =>
-        post(
-          `/trips/${id}/supplier-lists/${draft.id}/items/${fishTypeId}`,
-          { quantity_bags: currentVal },
-          "PATCH"
-        )
-      );
-    }
-  };
-
   const currentTotalBags = list?.items.reduce(
     (acc: number, i: A) => acc + intOf(quantities[i.fish_type_id] ?? i.quantity_bags),
     0
@@ -258,7 +244,6 @@ export default function Order() {
                             [i.fish_type_id]: e.target.value.replace(/\D/g, ""),
                           })
                         }
-                        onBlur={() => handleBlurQuantity(i.fish_type_id)}
                       />
                     ) : (
                       <span className="b num" style={{ fontSize: "1.3rem" }}>

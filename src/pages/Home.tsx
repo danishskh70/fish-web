@@ -84,8 +84,18 @@ export default function Home() {
   const [range, setRange] = useState("30");
   const phase = active && sl.data ? phaseOf(active, sl.data) : null;
 
-  const supName = (id: number) => sup.data?.find((s: A) => s.id === id)?.name ?? "";
-  const custName = (id: number) => cust.data?.find((c: A) => c.id === id)?.name ?? `#${id}`;
+  const supMap = useMemo(() => {
+    const m = new Map<number, string>();
+    (sup.data ?? []).forEach((s: A) => m.set(s.id, s.name));
+    return m;
+  }, [sup.data]);
+  const custMapName = useMemo(() => {
+    const m = new Map<number, string>();
+    (cust.data ?? []).forEach((c: A) => m.set(c.id, c.name));
+    return m;
+  }, [cust.data]);
+  const supName = (id: number) => supMap.get(id) ?? "";
+  const custName = (id: number) => custMapName.get(id) ?? `#${id}`;
 
   const closed = useMemo(() => {
     return trips.filter((t) => t.status === "CLOSED").sort(byIdDesc);
@@ -108,9 +118,9 @@ export default function Home() {
     const tp = [...cMap.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([id, n]) => [custName(id), n] as [string, number]);
+      .map(([id, n]) => [custMapName.get(id) ?? `#${id}`, n] as [string, number]);
     return { byFish: bf, top: tp, custMap: cMap };
-  }, [rows, cust.data]);
+  }, [rows, custMapName]);
 
   const days = Number(range);
   const inRange = useMemo(() => {

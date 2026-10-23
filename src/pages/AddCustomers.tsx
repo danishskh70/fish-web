@@ -166,9 +166,10 @@ export default function AddCustomers() {
                 type="button"
                 className={`ccard ${on ? "sel" : ""} ${added ? "off" : ""}`}
                 disabled={added}
+                aria-label={added ? `${c.name} — already on trip` : c.name}
                 onClick={() => toggle(c.id)}
               >
-                <span className="tick">{(on || added) && <Icon n="check" size={14} />}</span>
+                <span className="tick">{on && <Icon n="check" size={14} />}</span>
                 <Avatar name={c.name} />
                 <div className="nm">{c.name}</div>
                 <div className="sub trunc">{added ? "Already on trip" : c.phone || "No phone"}</div>

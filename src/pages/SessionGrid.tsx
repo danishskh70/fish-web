@@ -124,18 +124,17 @@ export default function SessionGrid() {
 
   function exportStockCsv() {
     if (!stock.data) return;
-    const rows = stock.data.map((l: A) => [
-      l.fish_type_name,
-      l.on_slip ? l.slip_bags : 0,
-      l.delivered_bags,
-      l.rejected_bags,
-      l.damaged_bags,
-      l.handed_bags,
-      l.left_bags,
-    ]);
     downloadCsv(`session-stock-${t.data?.trip_date}.csv`, [
-      ["Fish", "Slip Bags", "Delivered", "Rejected", "Damaged", "Handed", "Left"],
-      ...rows,
+      ["Fish", "Ordered", "Delivered", "Rejected", "Damaged", "Handed", "Left"],
+      ...stock.data.map((l: A) => [
+        l.fish_type_name,
+        l.on_slip ? l.slip_bags : "",
+        l.delivered_bags,
+        l.rejected_bags,
+        l.damaged_bags,
+        l.handed_bags,
+        l.left_bags,
+      ]),
     ]);
   }
 

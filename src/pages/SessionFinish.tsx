@@ -20,6 +20,16 @@ import { useBuzz } from "../extras";
 import { useToast } from "../ui-feedback";
 import BillView from "./Bill";
 
+function genId(): string {
+  try {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  } catch { /* fall through */ }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export default function SessionFinish() {
   const id = useTid();
   const nav = useNavigate();
@@ -49,13 +59,13 @@ export default function SessionFinish() {
   const getSelfRef = (): string => {
     let r = sessionStorage.getItem(REF_KEY);
     if (!r) {
-      r = crypto.randomUUID();
+      r = genId();
       sessionStorage.setItem(REF_KEY, r);
     }
     return r;
   };
   const rotateSelfRef = () => {
-    sessionStorage.setItem(REF_KEY, crypto.randomUUID());
+    sessionStorage.setItem(REF_KEY, genId());
   };
   const clearSelfRef = () => {
     sessionStorage.removeItem(REF_KEY);

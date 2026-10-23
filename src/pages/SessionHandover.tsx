@@ -22,6 +22,16 @@ import { usePrefs } from "../prefs";
 import { useSessionDone } from "../session";
 import { useToast } from "../ui-feedback";
 
+function genId(): string {
+  try {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  } catch { /* fall through */ }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export default function SessionHandover() {
   const id = useTid();
   const tcId = Number(useParams().tcId);
@@ -52,7 +62,7 @@ export default function SessionHandover() {
       const s = JSON.parse(sessionStorage.getItem(REF_KEY) ?? "null");
       if (s?.ref && s.sig === sig) return s.ref as string;
     } catch { /* ignore */ }
-    const ref = crypto.randomUUID();
+    const ref = genId();
     try { sessionStorage.setItem(REF_KEY, JSON.stringify({ ref, sig })); } catch { /* storage blocked */ }
     return ref;
   };
@@ -176,7 +186,7 @@ export default function SessionHandover() {
             type="button"
             className="btn sm outline"
             onClick={fillAllPlanned}
-            style={{ minHeight: 32, padding: "0 10px", fontSize: "0.8rem" }}
+            style={{ minHeight: 44, padding: "0 14px", fontSize: "0.85rem" }}
           >
             All planned
           </button>
