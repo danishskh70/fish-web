@@ -126,7 +126,7 @@ export default function TripDashboard() {
       <AppBar
         title={fmtDate(trip.trip_date)}
         sub={supplier}
-        onBack={() => nav(closed ? "/history" : "/dashboard")}
+        onBack={() => nav(closed ? "/trips" : "/dashboard")}
         right={
           <>
             <button className="ib" onClick={() => setMenu(true)} aria-label="Print & Export">
@@ -146,6 +146,19 @@ export default function TripDashboard() {
               </span>
             ))}
           </div>
+        </div>
+
+        <div className="row mb">
+          {phase !== "progress" && (draft || final || (prep && customers.length > 0)) && (
+            <Link to={`/trips/${id}/order`} className="btn soft grow">
+              <Icon n="list" size={20} />
+              Order list
+            </Link>
+          )}
+          <button type="button" className="btn soft grow" onClick={() => setMenu(true)}>
+            <Icon n="print" size={20} />
+            Print and export
+          </button>
         </div>
 
         {prep && (

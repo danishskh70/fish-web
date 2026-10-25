@@ -89,43 +89,28 @@ export default function Login() {
               onChange={(e) => setP(e.target.value)}
               autoComplete="current-password"
               required
-              aria-describedby={err ? "login-error" : undefined}
-              style={{ paddingRight: 72 }}
+              aria-label="Password"
+              style={{ paddingRight: 44 }}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               style={{
                 position: "absolute",
-                right: 2,
+                right: 12,
                 top: "50%",
                 transform: "translateY(-50%)",
                 color: "var(--mut)",
-                minWidth: 44,
-                minHeight: 44,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 700,
-                fontSize: "0.78rem",
+                padding: 4,
               }}
-              aria-pressed={showPassword}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? "Hide" : "Show"}
+              <Icon n={showPassword ? "check" : "lock"} size={18} />
             </button>
           </div>
         </Field>
-        {err && (
-          <div id="login-error" role="alert" aria-live="assertive">
-            <Err m={err} />
-          </div>
-        )}
-        {wait > 0 && (
-          <div className="alert bad" role="status" aria-live="polite">
-            Too many tries. Wait {wait}s.
-          </div>
-        )}
+        <Err m={err} />
+        {wait > 0 && <div className="alert bad">Too many tries. Wait {wait}s.</div>}
         <Btn block busy={busy} disabled={wait > 0}>
           Get started
         </Btn>

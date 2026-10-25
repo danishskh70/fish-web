@@ -39,7 +39,7 @@ export interface TripCustomerRef {
   customer_id: number;
 }
 
-export type SupplierListStatus = "DRAFT" | "FINAL";
+export type SupplierListStatus = "DRAFT" | "FINAL" | "SUPERSEDED";
 
 export interface SupplierListItem {
   id: number;
@@ -152,7 +152,6 @@ export interface RateStatusFish {
   fish_type_id: number;
   fish_type_name: string;
   default_set: boolean;
-  default_rate_per_bag?: string;
   override_trip_customer_ids: number[];
 }
 

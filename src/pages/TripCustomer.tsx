@@ -77,6 +77,7 @@ export default function TripCustomer() {
     }
 
     if (changes.length === 0) {
+      leave.skip();
       nav(goTo, { replace: true });
       return;
     }
@@ -135,6 +136,7 @@ export default function TripCustomer() {
       buzz();
       setV({});
       success("Requirements updated");
+      leave.skip();
       nav(goTo, { replace: true });
     }
   }

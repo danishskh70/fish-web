@@ -13,22 +13,13 @@ import {
   post,
   useAct,
   useGet,
+  LIVE,
   useTid,
   useTripPhase,
 } from "../lib";
 import { useBuzz } from "../extras";
 import { useToast } from "../ui-feedback";
 import BillView from "./Bill";
-
-function genId(): string {
-  try {
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
-  } catch { /* fall through */ }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
 
 export default function SessionFinish() {
   const id = useTid();
@@ -37,9 +28,9 @@ export default function SessionFinish() {
   const { success } = useToast();
   const { phase } = useTripPhase(id);
   const rt = useGet(["req", id], `/trips/${id}/requirements-table`);
-  const tcs = useGet(["tc", id], `/trips/${id}/customers`);
-  const stock = useGet(["stock", id], `/trips/${id}/stock`);
-  const tot = useGet(["totals", id], `/trips/${id}/handover-totals`);
+  const tcs = useGet(["tc", id], `/trips/${id}/customers`, LIVE);
+  const stock = useGet(["stock", id], `/trips/${id}/stock`, LIVE);
+  const tot = useGet(["totals", id], `/trips/${id}/handover-totals`, LIVE);
   const cust = useGet(["customers"], "/customers/");
   const { act, err, busy } = useAct([
     ["ho", id],
@@ -59,13 +50,13 @@ export default function SessionFinish() {
   const getSelfRef = (): string => {
     let r = sessionStorage.getItem(REF_KEY);
     if (!r) {
-      r = genId();
+      r = crypto.randomUUID();
       sessionStorage.setItem(REF_KEY, r);
     }
     return r;
   };
   const rotateSelfRef = () => {
-    sessionStorage.setItem(REF_KEY, genId());
+    sessionStorage.setItem(REF_KEY, crypto.randomUUID());
   };
   const clearSelfRef = () => {
     sessionStorage.removeItem(REF_KEY);

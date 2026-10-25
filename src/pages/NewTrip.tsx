@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { usePrefs } from "../prefs";
+import { ratesForTrip } from "../defaultRates";
 import {
   A,
   AppBar,
@@ -32,7 +33,7 @@ function getTodayKolkata(): string {
 // Step 1: configure trip only. Date, supplier, fish. Customers come later.
 export default function NewTrip() {
   const nav = useNavigate();
-  const { success } = useToast();
+  const { success, error: toastError } = useToast();
   const { trip: active, loading } = useActiveTrip();
   const sup = useGet(["suppliers"], "/suppliers/");
   const fts = useGet(["fish-types"], "/fish-types/");
@@ -78,6 +79,16 @@ export default function NewTrip() {
     });
     if (ok) {
       success("Trip created! Add customer requirements.");
+      // One-time copy of the saved default rates into this trip. Never blocks the trip.
+      const rates = p.autoApplyRates ? ratesForTrip(sel) : [];
+      if (rates.length) {
+        try {
+          await post(`/trips/${newId}/rates`, { rates }, "PUT");
+          success("Default rates applied to this trip.");
+        } catch {
+          toastError("Trip created, but default rates were not applied. Use Rates, Apply my default rates.");
+        }
+      }
       nav(`/trips/${newId}`, { replace: true });
     }
   }

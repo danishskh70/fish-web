@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from "react";
-import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, Route, createBrowserRouter, createRoutesFromElements, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 import { byIdDesc, useGet, A } from "./lib";
@@ -21,8 +21,15 @@ const SessionFinish = React.lazy(() => import("./pages/SessionFinish"));
 const Rates = React.lazy(() => import("./pages/Rates"));
 const Customers = React.lazy(() => import("./pages/Customers"));
 const CustomerProfile = React.lazy(() => import("./pages/CustomerProfile"));
-const History = React.lazy(() => import("./pages/History"));
-const Settings = React.lazy(() => import("./pages/Settings"));
+const Trips = React.lazy(() => import("./pages/Trips"));
+const SettingsHome = React.lazy(() => import("./pages/settings/SettingsHome"));
+const SettingsGeneral = React.lazy(() => import("./pages/settings/General"));
+const SettingsTrips = React.lazy(() => import("./pages/settings/TripsStock"));
+const SettingsRates = React.lazy(() => import("./pages/settings/DefaultRates"));
+const SettingsRecords = React.lazy(() => import("./pages/settings/Records"));
+const SettingsPrinting = React.lazy(() => import("./pages/settings/Printing"));
+const SettingsData = React.lazy(() => import("./pages/settings/DataSync"));
+const SettingsAbout = React.lazy(() => import("./pages/settings/About"));
 const Print = React.lazy(() => import("./pages/Print"));
 const Master = React.lazy(() => import("./pages/Master"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
@@ -81,7 +88,7 @@ function Lock() {
       p.startsWith(base + "/session") ||
       p.startsWith(base + "/print") ||
       p === base + "/rates" ||
-      p.startsWith("/customers");
+      p.startsWith("/customers") || p.startsWith("/settings");
     if (!ok) return <Navigate to={base + "/session"} replace />;
   }
   return <Outlet />;
@@ -101,13 +108,22 @@ const PageFallback = () => (
   </div>
 );
 
-export default function App() {
+function Root() {
   return (
     <div className="app">
       <ScrollToTop />
       <OfflineBanner />
       <Suspense fallback={<PageFallback />}>
-        <Routes>
+        <Outlet />
+      </Suspense>
+    </div>
+  );
+}
+
+// Data router, so useBlocker can guard unsaved forms (including the Android back gesture).
+export const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<Root />}>
           <Route path="/login" element={<Login />} />
           <Route element={<Guard />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -127,8 +143,16 @@ export default function App() {
               <Route path="/dashboard" element={<Home />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/customers/:customerId" element={<CustomerProfile />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/settings" element={<Settings />} />
+<Route path="/trips" element={<Trips />} />
+              <Route path="/history" element={<Navigate to="/trips" replace />} />
+              <Route path="/settings" element={<SettingsHome />} />
+              <Route path="/settings/general" element={<SettingsGeneral />} />
+              <Route path="/settings/trips" element={<SettingsTrips />} />
+              <Route path="/settings/trips/rates" element={<SettingsRates />} />
+              <Route path="/settings/records" element={<SettingsRecords />} />
+              <Route path="/settings/printing" element={<SettingsPrinting />} />
+              <Route path="/settings/data" element={<SettingsData />} />
+              <Route path="/settings/about" element={<SettingsAbout />} />
               <Route
                 path="/fish-types"
                 element={<Master path="fish-types" title="Fish types" fields={["name"]} />}
@@ -152,8 +176,6 @@ export default function App() {
           </Route>
           {/* Explicit 404 page instead of silent redirect */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    </div>
-  );
-}
+        </Route>
+  )
+);

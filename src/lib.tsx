@@ -14,7 +14,9 @@ export type A = any;
 
 /* ---------- hooks ---------- */
 export const useTid = () => Number(useParams().tripId);
-export const useGet = (key: unknown[], path: string, options: { staleTime?: number } = {}) =>
+// LIVE = refresh every 15s while the tab is visible. Used on session screens so 2-3 phones see each other.
+export const LIVE = { refetchInterval: 15000, refetchIntervalInBackground: false } as const;
+export const useGet = (key: unknown[], path: string, options: { staleTime?: number; refetchInterval?: number | false; refetchIntervalInBackground?: boolean } = {}) =>
   useQuery({ queryKey: key, queryFn: () => api<A>(path), ...options });
 export const post = (p: string, b?: A, m = "POST") =>
   api<A>(p, { method: m, body: b === undefined ? undefined : JSON.stringify(b) });
@@ -185,8 +187,14 @@ const P: Record<string, React.ReactNode> = {
   ),
   fish: (
     <>
-      <path d="M2 12c3-5 9-7 14-4 2 1 4 3 6 4-2 1-4 3-6 4-5 3-11 1-14-4z" />
-      <circle cx="15" cy="11" r=".8" fill="currentColor" />
+      <path d="M2 12c2.5-4.5 7-6.5 12-4.5L21 4v16l-7-3.5c-5 2-9.5 0-12-4.5z" />
+      <circle cx="7.2" cy="11.4" r="0.9" fill="currentColor" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
     </>
   ),
   clock: (
@@ -347,9 +355,11 @@ export const Warn = ({ children }: { children: React.ReactNode }) => (
 
 export const Load = ({ q, text = "Loading…" }: { q: A; text?: string }) =>
   q.isPending ? (
-    <div className="center sub" style={{ padding: 24 }}>
-      <div className="spin" style={{ margin: "0 auto 8px", borderColor: "rgba(11, 122, 95, 0.2)", borderTopColor: "var(--p)" }} />
-      {text}
+    <div className="sk-list" role="status" aria-busy="true" aria-live="polite">
+      <span className="sr-only">{text}</span>
+      <div className="skeleton-shimmer sk-card" aria-hidden="true" />
+      <div className="skeleton-shimmer sk-card" aria-hidden="true" />
+      <div className="skeleton-shimmer sk-card" style={{ opacity: 0.6 }} aria-hidden="true" />
     </div>
   ) : q.isError ? (
     <div className="alert bad" role="alert">
@@ -469,7 +479,7 @@ export function AppBar({
   logo?: boolean;
 }) {
   return (
-    <header className="hdr">
+    <header className={`hdr ${onBack ? "" : "lg"}`}>
       {onBack ? (
         <button className="ib" onClick={onBack} aria-label="Back">
           <Icon n="back" />

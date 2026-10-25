@@ -13,6 +13,7 @@ import {
   Pill,
   Seg,
   useGet,
+  LIVE,
   useTid,
   useTripPhase,
 } from "../lib";
@@ -34,11 +35,11 @@ export default function SessionGrid() {
   const [q, setQ] = useState("");
   const { t, phase } = useTripPhase(id);
   const rt = useGet(["req", id], `/trips/${id}/requirements-table`);
-  const tcs = useGet(["tc", id], `/trips/${id}/customers`);
-  const stock = useGet(["stock", id], `/trips/${id}/stock`);
-  const tot = useGet(["totals", id], `/trips/${id}/handover-totals`);
+  const tcs = useGet(["tc", id], `/trips/${id}/customers`, LIVE);
+  const stock = useGet(["stock", id], `/trips/${id}/stock`, LIVE);
+  const tot = useGet(["totals", id], `/trips/${id}/handover-totals`, LIVE);
   const cust = useGet(["customers"], "/customers/");
-  const slips = useGet(["slips", id], `/trips/${id}/supplier-deliveries`);
+  const slips = useGet(["slips", id], `/trips/${id}/supplier-deliveries`, LIVE);
 
   const hdr = (
     <AppBar
@@ -48,11 +49,11 @@ export default function SessionGrid() {
         <div className="row" style={{ gap: 6 }}>
           <button
             className="ib"
-            onClick={() => nav("/dashboard")}
-            aria-label="Dashboard"
-            title="Dashboard"
+            onClick={() => nav("/settings")}
+            aria-label="Settings"
+            title="Settings"
           >
-            <Icon n="home" size={20} />
+            <Icon n="sliders" size={20} />
           </button>
           <button
             className="ib"
@@ -124,17 +125,18 @@ export default function SessionGrid() {
 
   function exportStockCsv() {
     if (!stock.data) return;
+    const rows = stock.data.map((l: A) => [
+      l.fish_type_name,
+      l.on_slip ? l.slip_bags : 0,
+      l.delivered_bags,
+      l.rejected_bags,
+      l.damaged_bags,
+      l.handed_bags,
+      l.left_bags,
+    ]);
     downloadCsv(`session-stock-${t.data?.trip_date}.csv`, [
-      ["Fish", "Ordered", "Delivered", "Rejected", "Damaged", "Handed", "Left"],
-      ...stock.data.map((l: A) => [
-        l.fish_type_name,
-        l.on_slip ? l.slip_bags : "",
-        l.delivered_bags,
-        l.rejected_bags,
-        l.damaged_bags,
-        l.handed_bags,
-        l.left_bags,
-      ]),
+      ["Fish", "Slip Bags", "Delivered", "Rejected", "Damaged", "Handed", "Left"],
+      ...rows,
     ]);
   }
 
@@ -178,11 +180,18 @@ export default function SessionGrid() {
                   {doneCount} of {required.length}
                 </span>
               </div>
+              <div className="sub mt2 live">
+                <i aria-hidden="true" /> Live · updated{" "}
+                {tot.dataUpdatedAt
+                  ? new Date(tot.dataUpdatedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })
+                  : "now"}
+              </div>
               <div className="mt2">
                 <Bar pct={required.length ? (doneCount * 100) / required.length : 0} />
               </div>
             </div>
 
+            <div className="tools-sticky">
             <SearchInput
               value={q}
               onChange={setQ}
@@ -200,6 +209,7 @@ export default function SessionGrid() {
                 ["done", `Completed (${count("done")})`],
               ]}
             />
+            </div>
 
             <div className="grid2">
               {shown.map((c) => {
@@ -210,6 +220,13 @@ export default function SessionGrid() {
                     className={`ccard ${s}`}
                     onClick={() => nav(`/trips/${id}/session/customers/${c.x.id}`)}
                   >
+                    <span
+                      className="status-ic"
+                      aria-hidden="true"
+                      style={{ color: s === "done" ? "var(--ok)" : s === "recorded" ? "var(--info)" : "var(--warn)" }}
+                    >
+                      <Icon n={s === "done" ? "checks" : s === "recorded" ? "check" : "clock"} size={22} />
+                    </span>
                     <Avatar name={c.name} />
                     <div className="nm">{c.name}</div>
                     <div className="sub">
@@ -226,6 +243,7 @@ export default function SessionGrid() {
                             : "var(--warn)",
                       }}
                     >
+                      <span className="dot" aria-hidden="true" />
                       {label[s]}
                     </div>
                   </button>

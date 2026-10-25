@@ -1,44 +1,35 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { clearHandoverRef, getHandoverRef } from "../handoverRef";
 
-describe("Handover idempotency reference persistence", () => {
-  beforeEach(() => {
-    sessionStorage.clear();
+describe("handover idempotency reference", () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it("reuses the same reference for an identical payload (retry or remount)", () => {
+    const a = getHandoverRef(42, "payload-1");
+    const b = getHandoverRef(42, "payload-1");
+    expect(b).toBe(a);
   });
 
-  it("persists UUID across remounts and reuses the same reference", () => {
-    const tcId = 42;
-    const key = `fs_handover_ref_${tcId}`;
-
-    const getHandoverRef = (): string => {
-      let r = sessionStorage.getItem(key);
-      if (!r) {
-        r = "mock-uuid-1234";
-        sessionStorage.setItem(key, r);
-      }
-      return r;
-    };
-
-    const firstRef = getHandoverRef();
-    expect(firstRef).toBe("mock-uuid-1234");
-    expect(sessionStorage.getItem(key)).toBe("mock-uuid-1234");
-
-    // Simulate page remount
-    const secondRef = getHandoverRef();
-    expect(secondRef).toBe(firstRef);
-
-    // Simulate success cleanup
-    sessionStorage.removeItem(key);
-    expect(sessionStorage.getItem(key)).toBeNull();
+  it("makes a new reference when the payload changes", () => {
+    const a = getHandoverRef(42, "payload-1");
+    const b = getHandoverRef(42, "payload-2");
+    expect(b).not.toBe(a);
   });
 
-  it("handles trip leftover Self customer reference similarly", () => {
-    const tripId = 7;
-    const key = `fs_self_ref_${tripId}`;
+  it("keeps references separate per customer", () => {
+    expect(getHandoverRef(1, "x")).not.toBe(getHandoverRef(2, "x"));
+  });
 
-    sessionStorage.setItem(key, "self-uuid-5678");
-    expect(sessionStorage.getItem(key)).toBe("self-uuid-5678");
+  it("clears after success so the next handover gets a fresh reference", () => {
+    const a = getHandoverRef(42, "payload-1");
+    clearHandoverRef(42);
+    expect(getHandoverRef(42, "payload-1")).not.toBe(a);
+  });
 
-    sessionStorage.removeItem(key);
-    expect(sessionStorage.getItem(key)).toBeNull();
+  it("still returns a reference when storage is blocked", () => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => { throw new Error("blocked"); };
+    try { expect(getHandoverRef(7, "x")).toMatch(/[0-9a-f-]{36}/); }
+    finally { Storage.prototype.setItem = orig; }
   });
 });

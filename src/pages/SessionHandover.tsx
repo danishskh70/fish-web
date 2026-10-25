@@ -14,23 +14,15 @@ import {
   post,
   useAct,
   useGet,
+  LIVE,
   useTid,
   useTripPhase,
 } from "../lib";
 import { useBuzz, useLeave, useWakeLock } from "../extras";
+import { clearHandoverRef, getHandoverRef } from "../handoverRef";
 import { usePrefs } from "../prefs";
 import { useSessionDone } from "../session";
 import { useToast } from "../ui-feedback";
-
-function genId(): string {
-  try {
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
-  } catch { /* fall through */ }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
 
 export default function SessionHandover() {
   const id = useTid();
@@ -43,32 +35,16 @@ export default function SessionHandover() {
   useWakeLock(p.awake);
 
   const { phase } = useTripPhase(id);
-  const tcs = useGet(["tc", id], `/trips/${id}/customers`);
+  const tcs = useGet(["tc", id], `/trips/${id}/customers`, LIVE);
   const rt = useGet(["req", id], `/trips/${id}/requirements-table`);
-  const stock = useGet(["stock", id], `/trips/${id}/stock`);
-  const tot = useGet(["totals", id], `/trips/${id}/handover-totals`);
+  const stock = useGet(["stock", id], `/trips/${id}/stock`, LIVE);
+  const tot = useGet(["totals", id], `/trips/${id}/handover-totals`, LIVE);
   const cust = useGet(["customers"], "/customers/");
   const { act, err, busy } = useAct([["ho", id], ["stock", id], ["totals", id], ["trip", id]]);
 
   const [v, setV] = useState<Record<number, string>>({});
   const [note, setNote] = useState("");
   const [stage, setStage] = useState<"edit" | "confirm" | "payment">("edit");
-
-  // Idempotency UUID kept in sessionStorage. Reused only when the payload is identical
-  // (safe retry after a network drop). A changed payload gets a new UUID, so no 409 mismatch.
-  const REF_KEY = `fs_handover_ref_${tcId}`;
-  const getHandoverRef = (sig: string): string => {
-    try {
-      const s = JSON.parse(sessionStorage.getItem(REF_KEY) ?? "null");
-      if (s?.ref && s.sig === sig) return s.ref as string;
-    } catch { /* ignore */ }
-    const ref = genId();
-    try { sessionStorage.setItem(REF_KEY, JSON.stringify({ ref, sig })); } catch { /* storage blocked */ }
-    return ref;
-  };
-  const clearHandoverRef = () => {
-    try { sessionStorage.removeItem(REF_KEY); } catch { /* ignore */ }
-  };
 
   const leave = useLeave(stage === "edit" && (Object.keys(v).length > 0 || note !== ""));
   const back = `/trips/${id}/session`;
@@ -125,7 +101,7 @@ export default function SessionHandover() {
   async function submit() {
     const body: A = {
       trip_customer_id: tc.id,
-      submit_reference: getHandoverRef(JSON.stringify({ lines, note: note.trim() })),
+      submit_reference: getHandoverRef(tcId, JSON.stringify({ lines, note: note.trim() })),
       lines,
     };
     if (note.trim()) body.note = note.trim();
@@ -133,7 +109,7 @@ export default function SessionHandover() {
     const ok = await act(() => post(`/trips/${id}/handovers`, body));
     if (ok) {
       buzz(60);
-      clearHandoverRef();
+      clearHandoverRef(tcId);
       success("Handover recorded successfully");
       setStage("payment");
     } else {
@@ -186,7 +162,7 @@ export default function SessionHandover() {
             type="button"
             className="btn sm outline"
             onClick={fillAllPlanned}
-            style={{ minHeight: 44, padding: "0 14px", fontSize: "0.85rem" }}
+            style={{ minHeight: 32, padding: "0 10px", fontSize: "0.8rem" }}
           >
             All planned
           </button>
@@ -194,7 +170,12 @@ export default function SessionHandover() {
 
         {err && (
           <div className="card" style={{ borderColor: "var(--bad)", background: "var(--badb)" }}>
-            <Err m={err} />
+            {lines.every((l) => l.bags === 0) && handed(tc.customer_id) > 0 && (
+          <div className="alert info" role="status">
+            This customer already received the planned bags. Change a quantity only if they take more.
+          </div>
+        )}
+        <Err m={err} />
             <div className="row mt2">
               <Btn sm onClick={submit} busy={busy}>
                 <Icon n="refresh" size={16} /> Retry handover

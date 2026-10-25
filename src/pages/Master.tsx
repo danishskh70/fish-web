@@ -34,6 +34,7 @@ export default function Master({
   const { act, err, busy } = useAct([[path]]);
   const [s, setS] = useState("");
   const [edit, setEdit] = useState<A>(null);
+  const [more, setMore] = useState<A>(null);
   const [f, setF] = useState<Record<string, string>>({});
 
   const required = path === "fish-types" ? ["name"] : fields;
@@ -75,7 +76,7 @@ export default function Master({
 
   return (
     <>
-      <AppBar title={title} onBack={() => nav("/settings")} />
+      <AppBar title={title} onBack={() => nav("/settings/records")} />
       <div className="page">
         {noSelf && (
           <div className="alert warn">
@@ -115,35 +116,52 @@ export default function Master({
                   <div className="sub trunc">{[r.phone, r.address].filter(Boolean).join(" · ")}</div>
                 )}
               </div>
-              <div
-                className="row"
-                style={{ width: "100%", justifyContent: "flex-end", gap: 4, marginTop: 4 }}
-              >
-                <Btn sm variant="ghost" onClick={() => open(r)}>
+              <div className="row" style={{ width: "100%", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+                <Btn sm variant="soft" onClick={() => open(r)}>
                   Edit
                 </Btn>
-                <Btn
-                  sm
-                  variant="ghost"
-                  onClick={() =>
-                    act(() => post(`/${path}/${r.id}/${r.is_active ? "deactivate" : "activate"}`))
-                  }
-                >
-                  {r.is_active ? "Deactivate" : "Activate"}
-                </Btn>
-                <Btn
-                  sm
-                  variant="ghost"
-                  style={{ color: "var(--bad)" }}
-                  onClick={() => handleDelete(r)}
-                >
-                  Delete
+                <Btn sm variant="ghost" aria-label={`More actions for ${r.name}`} onClick={() => setMore(r)}>
+                  <Icon n="more" size={22} />
                 </Btn>
               </div>
             </div>
           ))}
         </div>
       </div>
+      {more && (
+        <Sheet onClose={() => setMore(null)}>
+          <h3>{more.name}</h3>
+          <div className="list">
+            <button
+              className="li"
+              onClick={async () => {
+                const r = more;
+                setMore(null);
+                await act(() => post(`/${path}/${r.id}/${r.is_active ? "deactivate" : "activate"}`));
+              }}
+            >
+              <span className="grow b">{more.is_active ? "Deactivate" : "Activate"}</span>
+            </button>
+            <button
+              className="li"
+              style={{ color: "var(--bad)" }}
+              onClick={() => {
+                const r = more;
+                setMore(null);
+                handleDelete(r);
+              }}
+            >
+              <span className="grow b">Delete</span>
+            </button>
+          </div>
+          <div className="sub">
+            Deactivate hides it from new trips and keeps history. Delete only works if it was never used.
+          </div>
+          <Btn block variant="ghost" className="mt2" onClick={() => setMore(null)}>
+            Close
+          </Btn>
+        </Sheet>
+      )}
       <button className="fab" onClick={() => open()} aria-label={`Add ${title}`}>
         <Icon n="plus" />
         Add

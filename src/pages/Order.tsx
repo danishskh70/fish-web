@@ -149,6 +149,7 @@ export default function Order() {
     });
     if (ok) {
       success("Trip configuration saved!");
+      leave.skip();
       nav(`/trips/${id}`, { replace: true });
     }
   }
@@ -173,6 +174,20 @@ export default function Order() {
     });
     if (confirmed) {
       await save();
+    }
+  };
+
+  const handleBlurQuantity = (fishTypeId: number) => {
+    const currentVal = intOf(quantities[fishTypeId]);
+    const origVal = originalQuantities[fishTypeId];
+    if (currentVal !== origVal && draft?.id) {
+      act(() =>
+        post(
+          `/trips/${id}/supplier-lists/${draft.id}/items/${fishTypeId}`,
+          { quantity_bags: currentVal },
+          "PATCH"
+        )
+      );
     }
   };
 
@@ -244,6 +259,7 @@ export default function Order() {
                             [i.fish_type_id]: e.target.value.replace(/\D/g, ""),
                           })
                         }
+                        onBlur={() => handleBlurQuantity(i.fish_type_id)}
                       />
                     ) : (
                       <span className="b num" style={{ fontSize: "1.3rem" }}>

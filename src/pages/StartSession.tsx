@@ -97,6 +97,7 @@ export default function StartSession({ more = false }: { more?: boolean }) {
     if (await act(() => post(`/trips/${id}/supplier-deliveries`, body))) {
       buzz();
       success(more ? "Stock added to current session" : "Session started! Proceed with distribution.");
+      leave.skip();
       nav(`/trips/${id}/session`, { replace: true });
     }
   }

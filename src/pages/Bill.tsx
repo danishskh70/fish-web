@@ -81,10 +81,7 @@ export default function BillView({ id, closed }: { id: number; closed?: boolean 
     ].join("\n");
 
     if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(lines).then(
-        () => success("Summary copied to clipboard"),
-        () => { /* silent — user can still select manually */ }
-      );
+      navigator.clipboard.writeText(lines).then(() => success("Summary copied to clipboard"));
     }
   };
 
@@ -140,8 +137,6 @@ export default function BillView({ id, closed }: { id: number; closed?: boolean 
           <div className="row">
             <span
               className="badge-pill warn"
-              aria-live="polite"
-              aria-atomic="true"
               style={{ fontSize: "0.75rem", padding: "2px 8px", height: "auto" }}
             >
               <Icon n="clock" size={12} /> Auto-hiding in {secondsLeft}s
@@ -151,7 +146,7 @@ export default function BillView({ id, closed }: { id: number; closed?: boolean 
             type="button"
             className="btn sm outline"
             onClick={extendTimer}
-            style={{ minHeight: 44, minWidth: 96, fontSize: "0.8rem", padding: "0 12px" }}
+            style={{ minHeight: 28, fontSize: "0.76rem", padding: "0 8px" }}
           >
             +30s More
           </button>

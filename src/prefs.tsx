@@ -13,6 +13,7 @@ export type Prefs = {
   vibrate: boolean;
   awake: boolean;
   autoNext: boolean;
+  autoApplyRates: boolean;
   lowStock: number;
   defSupplier: string;
   defFish: number[] | null;
@@ -29,6 +30,7 @@ export const DEFAULTS: Prefs = {
   vibrate: true,
   awake: true,
   autoNext: false,
+  autoApplyRates: true,
   lowStock: 10,
   defSupplier: "",
   defFish: null,

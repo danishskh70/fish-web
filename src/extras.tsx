@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useBlocker, useNavigate } from "react-router-dom";
+import { useConfirm } from "./ui-feedback";
 import { usePrefs } from "./prefs";
 
 /* ---- install prompt ---- */
@@ -99,44 +100,51 @@ export function useWakeLock(on: boolean) {
   }, [on]);
 }
 
-/* ---- unsaved changes guard ---- */
-export function useLeave(dirty: boolean, confirmFn?: (msg: string) => Promise<boolean> | boolean) {
+/* ---- unsaved changes guard ----
+   Uses the data router blocker, so it also catches the Android back gesture.
+   Callers that finish a save call leave.skip() right before navigating away. */
+export function useLeave(dirty: boolean) {
   const nav = useNavigate();
+  const confirm = useConfirm();
+  const dirtyRef = useRef(dirty);
+  const skipRef = useRef(false);
+  dirtyRef.current = dirty;
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirtyRef.current && !skipRef.current && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    let live = true;
+    confirm({
+      title: "Leave without saving?",
+      body: "Your changes on this screen will be lost.",
+      confirmLabel: "Leave",
+      cancelLabel: "Stay",
+      danger: true,
+    }).then((ok) => {
+      if (!live) return;
+      if (ok) blocker.proceed();
+      else blocker.reset();
+    });
+    return () => { live = false; };
+  }, [blocker, confirm]);
+
   useEffect(() => {
     if (!dirty) return;
-    const h = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", h);
-
-    // Push a dummy history state to intercept Android / mobile back button
-    window.history.pushState({ sentinel: true }, "");
-    const onPop = () => {
-      if (dirty) {
-        const ok = window.confirm("Leave without saving? Your changes will be lost.");
-        if (!ok) {
-          window.history.pushState({ sentinel: true }, "");
-        }
-      }
-    };
-    window.addEventListener("popstate", onPop);
-
-    return () => {
-      window.removeEventListener("beforeunload", h);
-      window.removeEventListener("popstate", onPop);
-    };
+    return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
 
-  return async (to: string, opts?: { replace?: boolean }) => {
-    if (dirty) {
-      const ok = confirmFn
-        ? await confirmFn("Leave without saving? Your changes will be lost.")
-        : window.confirm("Leave without saving? Your changes will be lost.");
-      if (!ok) return;
-    }
-    nav(to, opts);
+  const go = (to: string, opts?: { replace?: boolean }) => nav(to, opts);
+  go.skip = () => {
+    skipRef.current = true;
+    setTimeout(() => { skipRef.current = false; }, 800);
   };
+  return go;
 }
 
 /* ---- CSV download (built in browser from data already on screen) ---- */

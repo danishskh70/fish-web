@@ -16,6 +16,7 @@ import {
   useTid,
 } from "../lib";
 import { useToast } from "../ui-feedback";
+import { hasAnyDefaultRates, ratesForTrip } from "../defaultRates";
 
 const OK = /^\d+(\.\d{1,2})?$/;
 
@@ -98,6 +99,19 @@ export default function Rates() {
   const tcs = useGet(["tc", id], `/trips/${id}/customers`);
   const [tc, setTc] = useState("");
   const ro = t.data?.status === "CLOSED";
+  const toast = useToast();
+
+  async function applyDefaults() {
+    const rates = ratesForTrip((st.data ?? []).map((f: A) => f.fish_type_id));
+    if (!rates.length) return toast.error("No saved default rates for these fish.");
+    try {
+      await post(`/trips/${id}/rates`, { rates }, "PUT");
+      toast.success("Default rates applied");
+      st.refetch();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
 
   return (
     <>
@@ -108,6 +122,13 @@ export default function Rates() {
           handovers get priced. Priced lines never change.
         </div>
         <Load q={st} />
+        {!ro && st.data && hasAnyDefaultRates() && (
+          <div className="card">
+            <div className="b">Saved default rates</div>
+            <div className="sub mb">Sends your saved rate for each fish that has one. Fish without one are skipped.</div>
+            <Btn block variant="soft" onClick={applyDefaults}>Apply my default rates</Btn>
+          </div>
+        )}
         <div className="list">
           {(st.data ?? []).map((f: A) => (
             <div className="li between" key={f.fish_type_id}>

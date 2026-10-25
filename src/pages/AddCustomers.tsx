@@ -87,6 +87,7 @@ export default function AddCustomers() {
     });
     if (ok) {
       success(`Added ${sel.length} customer${sel.length > 1 ? "s" : ""} to trip`);
+      leave.skip();
       nav(back, { replace: true });
     }
   }
@@ -111,6 +112,7 @@ export default function AddCustomers() {
     const ok = await act(() => post(`/trips/${id}/customers/copy-from/${last.id}`));
     if (ok) {
       success(`Copied customers from previous trip #${last.id}`);
+      leave.skip();
       nav(back, { replace: true });
     }
   }
@@ -166,10 +168,9 @@ export default function AddCustomers() {
                 type="button"
                 className={`ccard ${on ? "sel" : ""} ${added ? "off" : ""}`}
                 disabled={added}
-                aria-label={added ? `${c.name} — already on trip` : c.name}
                 onClick={() => toggle(c.id)}
               >
-                <span className="tick">{on && <Icon n="check" size={14} />}</span>
+                <span className="tick">{(on || added) && <Icon n="check" size={14} />}</span>
                 <Avatar name={c.name} />
                 <div className="nm">{c.name}</div>
                 <div className="sub trunc">{added ? "Already on trip" : c.phone || "No phone"}</div>
