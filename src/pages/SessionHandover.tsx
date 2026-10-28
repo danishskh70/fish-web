@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   A,
   AppBar,
@@ -184,6 +184,10 @@ export default function SessionHandover() {
             <div className="sub">{[info?.phone, info?.address].filter(Boolean).join(" · ")}</div>
           </div>
         </div>
+
+        <Link to={`/trips/${id}/session/customers/${tcId}/payments`} className="btn soft block mb">
+          <Icon n="rupee" size={18} /> Payments / advance
+        </Link>
 
         <div className="between mb">
           <div className="sub">Change quantities to what the customer actually receives:</div>

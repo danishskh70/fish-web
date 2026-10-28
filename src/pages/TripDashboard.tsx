@@ -21,6 +21,7 @@ import {
 } from "../lib";
 import { downloadCsv } from "../extras";
 import BillView from "./Bill";
+import PaymentSummaryView from "./PaymentSummary";
 
 export default function TripDashboard() {
   const id = useTid();
@@ -254,6 +255,8 @@ export default function TripDashboard() {
             </div>
             <div className="h2">Bill</div>
             <BillView id={id} closed />
+            <div className="h2">Payments</div>
+            <PaymentSummaryView id={id} />
           </>
         )}
         {cta && (

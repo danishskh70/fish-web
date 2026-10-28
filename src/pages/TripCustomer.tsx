@@ -187,6 +187,10 @@ export default function TripCustomer() {
                 Bill
               </Link>
             )}
+            <Link to={`/trips/${id}/session/customers/${tcId}/payments`} className="btn soft grow">
+              <Icon n="rupee" size={18} />
+              Payments
+            </Link>
           </div>
         )}
         {edit && (

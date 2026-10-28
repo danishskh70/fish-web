@@ -10,3 +10,8 @@ export function cleanAmount(input: string): string | null {
   if (/^0*$/.test(whole) && (!frac || /^0*$/.test(frac))) return null;
   return frac !== undefined ? `${whole}.${frac}` : whole;
 }
+
+// Money strings from the server. Sign and zero checks only. No float math.
+export const isZero = (s: string): boolean => /^-?0*(\.0*)?$/.test(s.trim());
+export const isNegative = (s: string): boolean => s.trim().startsWith("-") && !isZero(s);
+export const unsigned = (s: string): string => s.trim().replace(/^-/, "");

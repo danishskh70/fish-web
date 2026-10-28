@@ -259,7 +259,7 @@ export default function SessionGrid() {
             </div>
             {shown.length === 0 && <div className="sub center">No customers match.</div>}
             <div className="sub center mt2">
-              Completed means the payment question was answered. It is not saved.
+              Completed means the payment step was finished.
             </div>
           </>
         )}

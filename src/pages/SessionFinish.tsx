@@ -20,6 +20,7 @@ import {
 import { useBuzz } from "../extras";
 import { useToast } from "../ui-feedback";
 import BillView from "./Bill";
+import PaymentSummaryView from "./PaymentSummary";
 
 export default function SessionFinish() {
   const id = useTid();
@@ -183,12 +184,18 @@ export default function SessionFinish() {
               <Link className="btn sm soft" to={`/trips/${id}/print/bill/${x.id}`}>
                 Bill
               </Link>
+              <Link className="btn sm soft" to={`/trips/${id}/session/customers/${x.id}/payments`}>
+                Pay
+              </Link>
             </div>
           ))}
         </div>
 
         <div className="h2">Bill</div>
         <BillView id={id} />
+
+        <div className="h2">Payments</div>
+        <PaymentSummaryView id={id} />
 
         <div className="h2">Close trip</div>
         <div className="card">

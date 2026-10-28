@@ -18,6 +18,7 @@ const StartSession = React.lazy(() => import("./pages/StartSession"));
 const SessionGrid = React.lazy(() => import("./pages/SessionGrid"));
 const SessionHandover = React.lazy(() => import("./pages/SessionHandover"));
 const SessionFinish = React.lazy(() => import("./pages/SessionFinish"));
+const Payments = React.lazy(() => import("./pages/Payments"));
 const Rates = React.lazy(() => import("./pages/Rates"));
 const Customers = React.lazy(() => import("./pages/Customers"));
 const CustomerProfile = React.lazy(() => import("./pages/CustomerProfile"));
@@ -134,6 +135,7 @@ export const router = createBrowserRouter(
             <Route path="/trips/:tripId/session/add" element={<AddCustomers />} />
             <Route path="/trips/:tripId/session/customers/:tcId" element={<SessionHandover />} />
             <Route path="/trips/:tripId/session/finish" element={<SessionFinish />} />
+            <Route path="/trips/:tripId/session/customers/:tcId/payments" element={<Payments />} />
             <Route path="/trips/:tripId/session/receive" element={<StartSession more />} />
             <Route path="/trips/:tripId/print/:kind" element={<Print />} />
             <Route path="/trips/:tripId/print/:kind/:tcId" element={<Print />} />
