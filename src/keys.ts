@@ -16,4 +16,5 @@ export const keys = {
   rs: (tripId: number) => ["rs", tripId] as const,
   bill: (tripId: number) => ["bill", tripId] as const,
   pack: (tripId: number) => ["pack", tripId] as const,
+  pay: (tripId: number, tcId: number) => ["pay", tripId, tcId] as const,
 };

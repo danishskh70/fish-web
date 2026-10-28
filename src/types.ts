@@ -173,3 +173,49 @@ export interface Bill {
 }
 
 export type Phase = "preparing" | "configured" | "progress" | "closed";
+
+export type PaymentMethod = "CASH" | "ONLINE";
+export type PaymentKind = "ADVANCE" | "PAYMENT";
+
+export interface Payment {
+  id: number;
+  trip_customer_id: number;
+  reference: string;
+  amount: string;
+  method: PaymentMethod;
+  kind: PaymentKind;
+  paid_at: string;
+  note: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+  created_at: string;
+}
+
+export interface PaymentSummaryCustomer {
+  trip_customer_id: number;
+  customer_id: number;
+  billed_amount: string;
+  complete: boolean;
+  advance_paid: string;
+  cash_paid: string;
+  online_paid: string;
+  total_paid: string;
+  remaining: string;
+  previous_balance: string;
+  previous_complete: boolean;
+  total_due: string;
+}
+
+// Sensitive like Bill: billed amounts. Fetch on tap, keep in state only.
+export interface PaymentSummary {
+  trip_id: number;
+  customers: PaymentSummaryCustomer[];
+  billed_amount: string;
+  complete: boolean;
+  advance_paid: string;
+  cash_paid: string;
+  online_paid: string;
+  total_paid: string;
+  outstanding: string;
+  credit: string;
+}
