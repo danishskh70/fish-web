@@ -8,6 +8,7 @@ import {
   Err,
   Icon,
   Load,
+  Seg,
   Sheet,
   Stepper,
   intOf,
@@ -20,6 +21,8 @@ import {
 } from "../lib";
 import { useBuzz, useLeave, useWakeLock } from "../extras";
 import { clearHandoverRef, getHandoverRef } from "../handoverRef";
+import { clearPaymentRef, getPaymentRef } from "../paymentRef";
+import { cleanAmount } from "../payments";
 import { usePrefs } from "../prefs";
 import { useSessionDone } from "../session";
 import { useToast } from "../ui-feedback";
@@ -44,7 +47,12 @@ export default function SessionHandover() {
 
   const [v, setV] = useState<Record<number, string>>({});
   const [note, setNote] = useState("");
-  const [stage, setStage] = useState<"edit" | "confirm" | "payment">("edit");
+  const [stage, setStage] = useState<"edit" | "confirm" | "payment" | "payform">("edit");
+  const pay = useAct([["pay", id, tcId]]);
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState<"CASH" | "ONLINE">("CASH");
+  const [payNote, setPayNote] = useState("");
+  const [payBad, setPayBad] = useState("");
 
   const leave = useLeave(stage === "edit" && (Object.keys(v).length > 0 || note !== ""));
   const back = `/trips/${id}/session`;
@@ -114,6 +122,27 @@ export default function SessionHandover() {
       setStage("payment");
     } else {
       setStage("edit");
+    }
+  }
+
+  async function submitPayment() {
+    setPayBad("");
+    const clean = cleanAmount(amount);
+    if (!clean) return setPayBad("Enter an amount above 0. Up to 2 decimals.");
+    const body: A = {
+      reference: getPaymentRef(tcId, JSON.stringify({ clean, method, note: payNote.trim() })),
+      amount: clean,
+      method,
+      kind: "PAYMENT",
+    };
+    if (payNote.trim()) body.note = payNote.trim();
+
+    const ok = await pay.act(() => post(`/trips/${id}/customers/${tc.id}/payments`, body));
+    if (ok) {
+      clearPaymentRef(tcId);
+      buzz(60);
+      success("Payment recorded");
+      answer();
     }
   }
 
@@ -276,11 +305,8 @@ export default function SessionHandover() {
           <div className="b" style={{ fontSize: "1.15rem" }}>
             Was payment received?
           </div>
-          <div className="alert info mt">
-            Temporary note for your reference. The answer is not saved and has no accounting effect.
-          </div>
-          <div className="row">
-            <Btn block onClick={answer}>
+          <div className="row mt">
+            <Btn block onClick={() => setStage("payform")}>
               Yes
             </Btn>
             <Btn block variant="outline" onClick={answer}>
@@ -299,6 +325,52 @@ export default function SessionHandover() {
               Skip
             </Btn>
           </div>
+        </Sheet>
+      )}
+
+      {stage === "payform" && (
+        <Sheet onClose={() => !pay.busy && setStage("payment")}>
+          <h3>Payment from {info?.name}</h3>
+          <Err m={payBad || pay.err} />
+          <div className="field">
+            <label className="label">Amount (₹)</label>
+            <input
+              className="input"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}
+            />
+          </div>
+          <Seg
+            items={[
+              ["CASH", "Cash"],
+              ["ONLINE", "Online"],
+            ]}
+            value={method}
+            onChange={(v) => setMethod(v as "CASH" | "ONLINE")}
+          />
+          <input
+            className="input mt"
+            placeholder="Note (optional)"
+            maxLength={500}
+            value={payNote}
+            onChange={(e) => setPayNote(e.target.value)}
+          />
+          <div className="sub mt">Cash goes in the cash tally. Online must match the bank.</div>
+          <Btn block className="mt" busy={pay.busy} onClick={submitPayment}>
+            Record payment
+          </Btn>
+          <Btn
+            block
+            variant="ghost"
+            className="mt2"
+            disabled={pay.busy}
+            onClick={() => setStage("payment")}
+          >
+            Back
+          </Btn>
         </Sheet>
       )}
     </>
