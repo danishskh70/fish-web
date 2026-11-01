@@ -1,160 +1,70 @@
-# FishSeed Manager
+# MatsyaSetu app (v3): web page + PWA, runs on stub data
 
-A mobile-first web app for running fish seed distribution trips. Plan what each customer wants, order from the supplier, receive the stock, hand out bags in the field, print slips and bills, and close the trip. Installs on a phone like a normal app (PWA).
+One React app. On a phone it is an installable PWA with bottom navigation. On a laptop it is a normal web page with a sidebar. Every screen works today with **stub data** saved in the browser, so you can use and judge the whole flow before the backend exists.
 
-Built for one owner who works on the move, with a growing team in mind. Everything is designed to take as few taps as possible and to keep the owner's selling rates secret.
-
-> This repository is the **frontend only**. It talks to a separate FastAPI backend (`/api`).
-
-## What it does
-
-A trip has two phases.
-
-**1. Prepare**
-1. Create the trip: date, supplier, fish types.
-2. Add customers from your customer list.
-3. Set each customer's requirement (bags per fish).
-4. Review the order list. The packing view uses the same data.
-5. Save the trip configuration.
-
-**2. Distribute (the session)**
-1. Start the session by recording the bags actually received from the supplier.
-2. A card grid shows every customer. Tap one, check the prefilled bags, confirm.
-3. Add stock if the supplier sends more. Add an unexpected customer if someone turns up.
-4. Finish: hand leftover bags to a customer named `Self`, show the bill, close the trip.
-
-Once a trip is closed it is read-only and moves to the Trips tab history.
-
-## Features
-
-- **One open trip at a time.** The app always shows the next step.
-- **Session lock.** While a trip is in progress, the app keeps you in the session. The lock comes from the trip status saved on the server, so a refresh does not escape it.
-- **Safe handovers.** Quantities are prefilled from the plan. A retry after a network drop uses the same reference, so the server cannot record a handover twice. Over-stock gives a warning, not a block.
-- **Print and export.** Requirement list, order list, packing list, trip summary, handover slip, complete bill and customer bill. Use the browser's Print or Save as PDF. CSV export for requirements, handovers, customers and past trips.
-- **Settings in categories.** General, Trips & stock, Customers & suppliers, Printing & sharing, Data & synchronization, About.
-- **Default rates.** Set a rate per fish once. It is applied to each new trip automatically. See [Security notes](#security-notes).
-- **Unsaved-changes guard.** Leaving a form with unsaved work asks first, including the Android back gesture.
-- **Plain-language errors.** Network and server problems are explained in everyday words and your entries stay on screen.
-- **Live session.** Session screens refresh every 15 seconds, so a second phone sees new handovers.
-- **Field-ready.** Light and dark themes, large text option, bright-sun mode, vibration, keep-screen-awake, bundled Inter font that works offline.
-
-## Tech stack
-
-| Area | Choice |
-|---|---|
-| UI | React 18, TypeScript |
-| Build | Vite 5 |
-| Routing | React Router 6 (data router, `useBlocker` for the leave guard) |
-| Server state | TanStack Query 5 |
-| PWA | `vite-plugin-pwa` (prompted updates, app shell only, never caches the API) |
-| Tests | Vitest, Testing Library, jsdom |
-| Hosting | Netlify (static) with the API proxied through it |
-
-## Getting started
-
-You need Node 20 or newer and the backend running locally on port 8000.
-
+## Run (Ubuntu / bash)
+The app talks to your **FastAPI backend on http://localhost:8000** by default. Vite forwards `/api` to it, so there is no CORS or cookie setup.
 ```bash
+unzip matsyasetu-frontend-v3-live.zip && cd matsyasetu-app
 npm install
-npm run dev
+# 1) start the backend (in the backend repo):  uv run uvicorn app.main:app --port 8000
+# 2) start the app:
+npm run dev                          # http://localhost:5173  (log in with your backend user)
+VITE_API_PROXY=http://localhost:9000 npm run dev    # if the backend uses another port
+VITE_USE_STUB=1 npm run dev          # no backend at all: whole app on demo data
+npm test                             # money rules
+npm run build && npm run preview     # installable PWA build (preview also proxies /api)
 ```
+Phone on the same Wi-Fi: `npm run dev -- --host`, open the shown address. Install needs HTTPS (deploy `dist/`, or put the same reverse proxy in front of the backend).
 
-Open <http://localhost:5173>. In development, requests to `/api` are proxied to `http://localhost:8000`.
+## What is live and what is still local
 
-### Environment variable
-
-Create `.env` (never commit it):
-
-```
-VITE_API_BASE_URL=/api
-```
-
-- `/api` is the default. In development the Vite proxy sends it to your local backend. On Netlify the redirect in `netlify.toml` sends it to your hosted backend.
-- Set a full URL (for example `http://localhost:8000/api`) only if you want to bypass the proxy. In production that makes the login cookie third-party, which Safari and Firefox may block.
-
-### Scripts
-
-| Command | What it does |
+| Screen / action | Source |
 |---|---|
-| `npm run dev` | Start the dev server |
-| `npm run build` | Type-check, then build to `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm test` | Run the test suite once |
+| Login, logout, session | **Backend** `/api/auth/*` |
+| Suppliers, fish list, fish on/off | **Backend** |
+| Customers: list, add | **Backend** (phone and place are required by the backend) |
+| New trip: trip, customers, bags, rates | **Backend** (several calls: trip, customers, requirements, rates) |
+| Trip overview, customer in trip | **Backend**, combined from requirements-table, handovers, payments-summary |
+| Handover | **Backend** `POST /trips/{id}/handovers` (bags of 0 are skipped) |
+| Advance and current payment, history, cancel | **Backend** `.../customers/{tc}/payments` and `/void` |
+| Close trip | **Backend** `POST /trips/{id}/close` |
+| Customer balances per trip, To collect total | **Backend data**, summed on the phone (one summary call per trip) |
+| Low stock banner | Backend `GET /trips/{id}/stock` against your limit |
+| Profile, preferences (theme, defaults, low-stock limits, alerts) | **This device only** (no backend endpoint yet) |
+| Default rates | **This device only**, sent to the backend with each *new* trip (`PUT /trips/{id}/rates`) |
+| Fish photos | **This device only** |
+| Receipt screen | Built from real payments. Remaining is replayed from saved payments (backend has no snapshot yet). PDF is a demo PDF made in the browser. |
 
-## Project structure
+Because the backend cannot give an **expected amount before handover**, the app shows "after handover" for amounts until the bags are handed over. Advance still works.
 
+Not possible with the current backend: a per-bag rate label on the handover screen (rates are write-only) and a handover of zero bags.
+
+## The flow (as designed)
+1. **Customer list** (Trip → customers). Tap **Advance** on a row, or on the Order list tab, to take an advance before the bags are handed over.
+2. **Handover** (tap a customer → Record handover). Bags per fish, notes, Record Handover. Locked after saving.
+3. **Payment** opens after handover. It is always **Current payment**. The screen **stays open** after each payment so you can add another one. Balance updates in place.
+4. **History** lists every payment (All / Advance / Current). **Receipt** shows amount received and the remaining for that trip at that moment. Share or Download PDF. A wrong payment is **cancelled with a reason**, never deleted.
+5. After a payment a snackbar offers **Undo** for 7 seconds.
+6. **Close trip** works even with unpaid balances. Unpaid money stays collectable from Customers or Dashboard → To collect.
+
+Balances are always per trip. A customer who owes ₹800 on trip A and ₹500 on trip B sees two separate balances (and a total of ₹1,300 above them).
+
+## Screens
+Login · Dashboard (3 blocks) · Trips · New trip · Trip overview (Customers / Order list) · Customer in trip · Handover · Payment · History · Receipt · Customers · Customer → trips · To collect · Settings (list in list: Profile, Default supplier, Default fish, Low stock, Default rates, Stock alerts, Fish photos, Appearance, About/install).
+
+## Where things live
 ```
-src/
-  App.tsx              Routes, session lock, data router
-  main.tsx             Providers and router
-  api.ts               Fetch wrapper, error mapping, cookies
-  errors.ts            Plain-language error messages
-  lib.tsx              Shared hooks and UI atoms
-  extras.tsx           Offline banner, wake lock, install prompt, leave guard
-  prefs.tsx            Device preferences (theme, text size, defaults)
-  defaultRates.ts      Default rates kept on this device
-  handoverRef.ts       Idempotency reference for handovers
-  settings-ui.tsx      Settings row components
-  ui-feedback.tsx      Toasts, confirm dialogs, error boundary
-  types.ts, keys.ts, format.ts
-  pages/               One file per screen
-    settings/          One file per settings category
-  __tests__/           Unit and smoke tests
-public/                Icons (including maskable), bundled font
-netlify.toml           Proxy, SPA fallback, cache headers
+src/api/types.ts   shapes the backend must return
+src/api/money.ts   the money rules (tested)
+src/api/stub.ts    in-browser fake database + seed data (localStorage "ms_stub_v3")
+src/api/api.ts     THE ONLY data file the screens use. Each function = one endpoint
+src/pages, src/settings, src/ui   screens and components
 ```
+When a new backend endpoint is ready, change only the matching function in `src/api/liveApi.ts`. Screens do not change. `BACKEND_GUIDE.md` lists the endpoints still to build (its paths for payments are from my first draft: use the trip-scoped paths above).
 
-## Trip phases
-
-The app derives a trip's phase from data saved on the server, never from local state.
-
-| Phase | Rule | Main action |
-|---|---|---|
-| Preparing | Status `PLANNING`, no final order list | Continue setting up |
-| Configured | Status `PLANNING`, final order list saved | Start session |
-| In progress | Status `IN_PROGRESS` | Continue session |
-| Closed | Status `CLOSED` | View (read only) |
-
-## Security notes
-
-- **Selling rates are write-only.** The UI never shows a saved rate. Rate fields are password-style inputs and are cleared after saving.
-- **Bills are not cached.** The bill is fetched on demand, kept in memory only, and hidden again after 30 seconds, when the window loses focus, or when you leave the page.
-- **No tokens in browser storage.** Login uses a cookie set by the server.
-- **The service worker caches only the app files**, never API responses.
-- **Default rates are stored in this browser** (frontend-only for now). They cannot be viewed in the app, but someone with access to the phone's browser data could read them. Use this feature only on your own device. Moving default rates to the server is the planned fix.
-- **Do not publish your backend's `/docs` and `/openapi.json` in production.** Turn them off in FastAPI.
-
-## Backend requirements
-
-The app expects a FastAPI backend under `/api` with cookie-based login. The main resources are customers, suppliers, fish types, trips, trip customers and requirements, supplier lists, packing lists, supplier deliveries, handovers, stock, rates and bill. Rates are set with write-only calls; the read side returns only whether a rate is set.
-
-## Deployment (Netlify)
-
-1. Connect the repository. Build command `npm run build`, publish directory `dist`.
-2. Set `VITE_API_BASE_URL=/api`, or leave it unset.
-3. In `netlify.toml`, set the `to` address of the `/api/*` redirect to your backend.
-4. Deploy. After each deploy, open the installed app and confirm the "New version ready" bar appears, then tap Update.
-
-On Android, open the site in Chrome and choose Install app. On iPhone, open it in Safari, tap Share, then Add to Home Screen, and log in once inside the app.
-
-## Testing
-
-```bash
-npm test
-```
-
-The suite covers money formatting, trip phase rules, error messages, default rates, the handover reference, the unsaved-changes guard, and cold-start loading of the core screens (session grid, handover, settings).
-
-If tests fail on a newer Node version with an `AbortSignal` error, make sure `src/test-setup.ts` is listed under `setupFiles` in `vite.config.ts`.
-
-## Roadmap
-
-- Payments and customer ledger (manual entry, no gateway)
-- Helper accounts with limited access, and per-user history
-- Default rates stored on the server
-- Marathi and English
-- Offline queue for handovers
-
-## License
-
-Add a license before making the repository public. Without one, the code is all rights reserved by default.
+## Notes
+- Settings → About shows the connection status and resets device-only settings.
+- Payment and handover retries reuse one reference, so a double tap never records twice.
+- "Show rate per bag" (Settings → Profile) hides the per-bag rate on the handover screen. It is a privacy convenience, not security.
+- Not built: offline queue, real stock ledger, reports screen (backend report file is described in the guide).

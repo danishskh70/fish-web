@@ -1,0 +1,12 @@
+const nf = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 });
+export const inr = (n: number) => `${n < 0 ? "-" : ""}₹${nf.format(Math.abs(n))}`;
+export const bags = (n: number) => `${n} bag${n === 1 ? "" : "s"}`;
+const D = new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+const T = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+export const dateOnly = (iso: string) => D.format(new Date(iso.length === 10 ? `${iso}T00:00:00` : iso));
+export const dateTime = (iso: string) => `${D.format(new Date(iso))}, ${T.format(new Date(iso))}`;
+export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
+const PAL = ["#3b6fd4", "#0e9f8e", "#c0632b", "#8553c9", "#c23d68", "#4a8f3c", "#2f7fa8", "#a8872b"];
+export const colorFor = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]!; };
+export const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; };
+export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);

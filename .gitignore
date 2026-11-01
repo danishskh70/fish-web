@@ -1,4 +1,9 @@
-.env
-node_modules/
-docs/
+dev-dist
+dist
 dist/
+docs/
+.env
+.env.local
+*.local
+node_modules
+node_modules/
