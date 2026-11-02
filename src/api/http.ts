@@ -1,7 +1,15 @@
 // Tiny fetch wrapper for the FastAPI backend. Same origin (Vite proxies /api), cookie session.
 import { ApiError } from "./types";
 
-const BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
+const BASE = (
+  import.meta.env.VITE_API_BASE ?? ""
+).replace(/\/+$/, "");
+
+if (import.meta.env.PROD && !BASE) {
+  throw new Error(
+    "VITE_API_BASE must be configured in production"
+  );
+}
 const AUTH = "ms_auth";
 const TTL = 3000; // GET results are shared for 3 s so one screen does not repeat the same call
 const cache = new Map<string, { at: number; p: Promise<unknown> }>();
